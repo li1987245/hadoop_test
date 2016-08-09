@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mybatis.UserMapper">
+    <resultMap id="userMap" type="User">
+        <result property="id" column="id"/>
+        <result property="name" column="name"/>
+        <collection property="phone" ofType="Phone">
+            <result property="num" column="num"/>
+        </collection>
+    </resultMap>
+    <resultMap id="_userMap" type="map">
+        <result property="id" column="id"/>
+        <result property="name" column="name"/>
+        <collection property="phone" ofType="map">
+            <result property="num" column="num"/>
+        </collection>
+    </resultMap>
+    <select id="selectUserAndPhone" resultMap="userMap">
+        select t_user.id as id,t_user.user_name as name,t_phone.num as num from t_user left outer join t_phone on t_user.id=t_phone.user_id where t_user.id = #{id}
+    </select>
+    <insert id="bulkInsertUser" useGeneratedKeys="true" parameterType="list">
+        insert into t_user (user_name,password)
+        values
+        <foreach collection="list" item="item" index="index" separator="," >
+            (#{item.name}
+            <choose>
+            <when test="item.password!=null and item.password!=''">
+                ,#{item.name}
+            </when>
+            <otherwise>
+                ,'123456'
+            </otherwise>
+            </choose>
+            )
+        </foreach>
+    </insert>
+</mapper>

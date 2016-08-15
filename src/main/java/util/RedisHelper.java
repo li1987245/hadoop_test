@@ -46,10 +46,9 @@ public class RedisHelper {
             config.setMaxIdle(MAX_IDLE);
             config.setMaxWaitMillis(MAX_WAIT);
             config.setTestOnBorrow(TEST_ON_BORROW);
-            jedisPool = new JedisPool(config, ADDR, PORT, TIMEOUT, DESUtils.decrypt(AUTH));
-            LogUtil.getLogger(RedisHelper.class).info("jedisPool 初始化成功！");
+//            jedisPool = new JedisPool(config, ADDR, PORT, TIMEOUT, DESUtils.decrypt(AUTH));
+            jedisPool = new JedisPool(config,ADDR,PORT);
         } catch (Exception e) {
-            LogUtil.getLogger(RedisHelper.class).error("jedisPool 初始化失败！", e);
             e.printStackTrace();
         }
     }
@@ -64,7 +63,6 @@ public class RedisHelper {
         try {
             jedis = jedisPool.getResource();
         } catch (Exception e) {
-            LogUtil.getLogger(RedisHelper.class).error("获取jedis失败！", e);
             e.printStackTrace();
         }
         return jedis;
@@ -132,7 +130,6 @@ public class RedisHelper {
      */
     public static void release(final Jedis jedis) {
         if (jedis == null) {
-            LogUtil.getLogger(RedisHelper.class).info("jedis 资源释放失败！");
             return;
         }
         jedis.close();

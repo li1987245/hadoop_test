@@ -1,6 +1,9 @@
+import demo.China;
+import demo.Student;
 import org.junit.Test;
-import util.HashMap;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Random;
 
 /**
@@ -24,20 +27,16 @@ public class BasicTest {
             return -2;
         }
     }
-
     @Test
-    public void testHashMap(){
-        HashMap<Integer,Object> map = new HashMap<>(2);
-        Random r = new Random();
-        map.put(15,1);
-        map.put(7,1);
-        for(int i=0;i<100;i++){
-            int random = r.nextInt(30);
-            map.put(random,1);
-            System.out.println(random);
-        }
-        System.out.println(map.size());
-        System.out.println(map.entrySet().size());
-
+    public void testReflection(){
+        Student student = new Student();
+        Class cls = student.getClass();
+        Type type = cls.getGenericSuperclass();
+        System.out.println(type);
+        ParameterizedType p=(ParameterizedType)type;
+        Class c=(Class) p.getActualTypeArguments()[0];
+        System.out.println(c);
     }
+
+
 }

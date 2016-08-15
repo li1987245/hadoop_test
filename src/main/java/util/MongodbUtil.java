@@ -5,17 +5,22 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
-import com.mongodb.client.model.Filters;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
+import com.mongodb.gridfs.GridFS;
+import com.mongodb.gridfs.GridFSDBFile;
+import com.mongodb.gridfs.GridFSInputFile;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
-import java.util.ArrayList;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
+
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Projections.*;
 
 @SuppressWarnings("all")
 public class MongodbUtil {
@@ -25,38 +30,24 @@ public class MongodbUtil {
     public static final int MONGO_PORT = PropertiesUtil.getIntegerValue("mongodb.port");
     //mongo 服务数据库
     public static final String MONGODB_DB = PropertiesUtil.getStringValue("database.info");
-    //mongo 用户表
-    public static final String MONGODB_USERINFO = PropertiesUtil.getStringValue("user.info");
-    //mongo 访客表
-    public static final String MONGODB_VISTORINFO = PropertiesUtil.getStringValue("vistor.info");
-    //mongo 错误信息记录
-    public static final String MONGODB_ERRORINFO = PropertiesUtil.getStringValue("error.info");
-
-    public static final String MONGODB_MEETINGINFO = PropertiesUtil.getStringValue("meeting.info");
     //用户名
-    public static final String MONGODB_USER = PropertiesUtil.getStringValue("mongodb.user");
+//    public static final String MONGODB_USER = PropertiesUtil.getStringValue("mongodb.user");
     //密码
-    public static final String MONGODB_PASSWORD = PropertiesUtil.getStringValue("mongodb.password");
-    private MongoClient mongoClient;
-    private volatile static MongodbUtil singleton = new MongodbUtil();
+//    public static final String MONGODB_PASSWORD = PropertiesUtil.getStringValue("mongodb.password");
+    private volatile static MongoClient mongoClient;
 
-    private MongodbUtil() {
+    static {
         String MONGODB_PASSWORD_DECRYPT = null;
-        try {
-            MONGODB_PASSWORD_DECRYPT = DESUtils.decrypt(MONGODB_PASSWORD);
-        } catch (Exception e) {
-            LogUtil.getLogger(MongodbUtil.class).error(e);
-            e.printStackTrace();
-        }
         ServerAddress serverAddress = new ServerAddress(MONGODB_IP, MONGO_PORT);
         List<ServerAddress> adders = new ArrayList<ServerAddress>();
         adders.add(serverAddress);
         //MongoCredential.createScramSha1Credential()三个参数分别为 用户名 数据库名称 密码
-        MongoCredential credential = MongoCredential.createScramSha1Credential(MONGODB_USER, MONGODB_DB, MONGODB_PASSWORD_DECRYPT.toCharArray());
-        List<MongoCredential> credentials = new ArrayList<MongoCredential>();
-        credentials.add(credential);
+//        MongoCredential credential = MongoCredential.createScramSha1Credential(MONGODB_USER, MONGODB_DB, MONGODB_PASSWORD_DECRYPT.toCharArray());
+//        List<MongoCredential> credentials = new ArrayList<MongoCredential>();
+//        credentials.add(credential);
         //通过连接认证获取MongoDB连接
-        mongoClient = new MongoClient(adders, credentials);
+//        mongoClient = new MongoClient(adders, credentials);
+        mongoClient = new MongoClient(adders);
         MongoClientOptions.Builder options = new MongoClientOptions.Builder();
         options.connectionsPerHost(300);// 连接池设置为300个连接,默认为100
         options.connectTimeout(15000);// 连接超时，推荐>3000毫秒
@@ -66,8 +57,18 @@ public class MongodbUtil {
         options.build();
     }
 
-    public static MongodbUtil getInstance() {
-        return singleton;
+    /**
+     * 获取DB实例 - 指定DB
+     *
+     * @param dbName
+     * @return
+     */
+    public static DB getOldDB(String dbName) {
+        if (dbName != null && !"".equals(dbName)) {
+            DB db = mongoClient.getDB(dbName);
+            return db;
+        }
+        return null;
     }
 
     /**
@@ -76,7 +77,7 @@ public class MongodbUtil {
      * @param dbName
      * @return
      */
-    public MongoDatabase getDB(String dbName) {
+    public static MongoDatabase getDB(String dbName) {
         if (dbName != null && !"".equals(dbName)) {
             MongoDatabase database = mongoClient.getDatabase(dbName);
             return database;
@@ -90,7 +91,7 @@ public class MongodbUtil {
      * @param collName
      * @return
      */
-    public MongoCollection<Document> getCollection(String dbName, String collName) {
+    public static MongoCollection<Document> getCollection(String dbName, String collName) {
         if (null == collName || "".equals(collName)) {
             return null;
         }
@@ -104,7 +105,7 @@ public class MongodbUtil {
     /**
      * 查询DB下的所有表名
      */
-    public List<String> getAllCollections(String dbName) {
+    public static List<String> getAllCollections(String dbName) {
         MongoIterable<String> colls = getDB(dbName).listCollectionNames();
         List<String> _list = new ArrayList<String>();
         for (String s : colls) {
@@ -118,7 +119,7 @@ public class MongodbUtil {
      *
      * @return
      */
-    public MongoIterable<String> getAllDBNames() {
+    public static MongoIterable<String> getAllDBNames() {
         MongoIterable<String> s = mongoClient.listDatabaseNames();
         return s;
     }
@@ -126,7 +127,7 @@ public class MongodbUtil {
     /**
      * 删除一个数据库
      */
-    public void dropDB(String dbName) {
+    public static void dropDB(String dbName) {
         getDB(dbName).drop();
     }
 
@@ -136,21 +137,21 @@ public class MongodbUtil {
      * @param id
      * @return
      */
-    public Document findById(MongoCollection<Document> coll, String id) {
+    public static Document findById(MongoCollection<Document> coll, String id) {
         ObjectId _idobj = null;
         try {
             _idobj = new ObjectId(id);
         } catch (Exception e) {
             return null;
         }
-        Document myDoc = coll.find(Filters.eq("_id", _idobj)).first();
+        Document myDoc = coll.find(eq("_id", _idobj)).first();
         return myDoc;
     }
 
     /**
      * 统计数
      */
-    public int getCount(MongoCollection<Document> coll) {
+    public static int getCount(MongoCollection<Document> coll) {
         int count = (int) coll.count();
         return count;
     }
@@ -158,14 +159,14 @@ public class MongodbUtil {
     /**
      * 条件查询
      */
-    public MongoCursor<Document> find(MongoCollection<Document> coll, Bson filter) {
+    public static MongoCursor<Document> find(MongoCollection<Document> coll, Bson filter) {
         return coll.find(filter).iterator();
     }
 
     /**
      * 分页查询
      */
-    public MongoCursor<Document> findByPage(MongoCollection<Document> coll, Bson filter, int pageNo, int pageSize) {
+    public static MongoCursor<Document> findByPage(MongoCollection<Document> coll, Bson filter, int pageNo, int pageSize) {
         Bson orderBy = new BasicDBObject("_id", 1);
         return coll.find(filter).sort(orderBy).skip((pageNo - 1) * pageSize).limit(pageSize).iterator();
     }
@@ -177,7 +178,7 @@ public class MongodbUtil {
      * @param id
      * @return
      */
-    public int deleteById(MongoCollection<Document> coll, String id) {
+    public static int deleteById(MongoCollection<Document> coll, String id) {
         int count = 0;
         ObjectId _id = null;
         try {
@@ -185,7 +186,7 @@ public class MongodbUtil {
         } catch (Exception e) {
             return 0;
         }
-        Bson filter = Filters.eq("_id", _id);
+        Bson filter = eq("_id", _id);
         DeleteResult deleteResult = coll.deleteOne(filter);
         count = (int) deleteResult.getDeletedCount();
         return count;
@@ -200,15 +201,13 @@ public class MongodbUtil {
      * @param map
      * @return
      */
-    public long getCount(String databasename, String collectionname, HashMap<String, Object> map) {
+    public static long getCount(String databasename, String collectionname, HashMap<String, Object> map) {
         BasicDBObject basic = makeCondition(map);
         try {
-            MongoCollection col = this.getCollection(databasename, collectionname);
+            MongoCollection col = getCollection(databasename, collectionname);
             long find = col.count(basic);
             return find;
         } catch (Exception e) {
-            LogUtil.getLogger(MongodbUtil.class)
-                    .error("根据指定条件获取" + collectionname + "中的部分数据异常", e);
             e.printStackTrace();
         }
         return 0;
@@ -223,9 +222,9 @@ public class MongodbUtil {
      * @param value
      * @return
      */
-    public boolean update(String databasename, String collectionname, HashMap<String, Object> condition, HashMap<String, Object> value) {
+    public static boolean update(String databasename, String collectionname, HashMap<String, Object> condition, HashMap<String, Object> value) {
         boolean result = false;
-        MongoCollection col = this.getCollection(databasename, collectionname);
+        MongoCollection col = getCollection(databasename, collectionname);
         BasicDBObject _condition = new BasicDBObject(condition);
         BasicDBObject _value = new BasicDBObject(value);
         UpdateResult writeResult = col.updateOne(_condition, new Document("$set", _value));
@@ -242,9 +241,9 @@ public class MongodbUtil {
      * @param value
      * @return
      */
-    public boolean update(String databasename, String collectionname, HashMap<String, Object> condition, Object value) {
+    public static boolean update(String databasename, String collectionname, Map<String, Object> condition, Object value) {
         boolean result = false;
-        MongoCollection col = this.getCollection(databasename, collectionname);
+        MongoCollection col = getCollection(databasename, collectionname);
         BasicDBObject _condition = new BasicDBObject(condition);
         BasicDBObject _value = new BasicDBObject(BeanUtil.bean2DBObj(value));
         UpdateResult writeResult = col.updateOne(_condition, new Document("$set", _value));
@@ -261,8 +260,8 @@ public class MongodbUtil {
      * @param clazz
      * @return
      */
-    public <T> List<T> getByCondition(String databasename, String collectionname,
-                                      Object map, Class<T> clazz, String... fields) {
+    public static <T> List<T> getByCondition(String databasename, String collectionname,
+                                             Object map, Class<T> clazz, String... fields) {
         BasicDBObject basic = makeCondition(map);
         BasicDBObject projection = makeProjection(fields);
         return getList(databasename, collectionname, clazz, basic, projection);
@@ -277,11 +276,11 @@ public class MongodbUtil {
      * @param basic
      * @return
      */
-    private <T> List<T> getList(String databasename, String collectionname,
-                                Class<T> clazz, BasicDBObject basic, BasicDBObject projection) {
+    private static <T> List<T> getList(String databasename, String collectionname,
+                                       Class<T> clazz, BasicDBObject basic, BasicDBObject projection) {
         List<T> list = new ArrayList<T>();
         try {
-            MongoCollection col = this.getCollection(databasename, collectionname);
+            MongoCollection col = getCollection(databasename, collectionname);
             MongoCursor<Document> find = col.find(basic).projection(projection).iterator();
             while (find.hasNext()) {
                 Document dbObject = find.next();
@@ -290,8 +289,6 @@ public class MongodbUtil {
                 list.add(b);
             }
         } catch (Exception e) {
-            LogUtil.getLogger(MongodbUtil.class)
-                    .error("根据指定条件获取" + collectionname + "中的部分数据异常", e);
             e.printStackTrace();
         }
         return list;
@@ -304,7 +301,7 @@ public class MongodbUtil {
      * @return
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public Object makeCondition(String key, Object obj) {
+    public static Object makeCondition(String key, Object obj) {
         BasicDBObject basic = new BasicDBObject();
 
         if (obj != null) {
@@ -330,7 +327,7 @@ public class MongodbUtil {
      * @param map
      * @return
      */
-    public BasicDBObject makeCondition(Object obj) {
+    public static BasicDBObject makeCondition(Object obj) {
         return (BasicDBObject) makeCondition(null, obj);
     }
 
@@ -341,7 +338,7 @@ public class MongodbUtil {
      * @param map
      * @return
      */
-    public BasicDBObject makeProjection(String... fields) {
+    public static BasicDBObject makeProjection(String... fields) {
         BasicDBObject basic = new BasicDBObject();
 
         if (fields != null) {
@@ -358,27 +355,27 @@ public class MongodbUtil {
      * @param newdoc
      * @return
      */
-    public Document updateById(MongoCollection<Document> coll, String id, Document newdoc) {
+    public static Document updateById(MongoCollection<Document> coll, String id, Document newdoc) {
         ObjectId _idobj = null;
         try {
             _idobj = new ObjectId(id);
         } catch (Exception e) {
             return null;
         }
-        Bson filter = Filters.eq("_id", _idobj);
+        Bson filter = eq("_id", _idobj);
         // coll.replaceOne(filter, newdoc); // 完全替代
         coll.updateOne(filter, new Document("$set", newdoc));
         return newdoc;
     }
 
-    public void dropCollection(String dbName, String collName) {
+    public static void dropCollection(String dbName, String collName) {
         getDB(dbName).getCollection(collName).drop();
     }
 
     /**
      * 关闭Mongodb
      */
-    public void close() {
+    public static void close() {
         if (mongoClient != null) {
             mongoClient.close();
             mongoClient = null;
@@ -392,9 +389,41 @@ public class MongodbUtil {
      * @param collName
      * @param obj
      */
-    public void insert(String dbName, String collName, Object obj) {
+    public static void insert(String dbName, String collName, Object obj) {
         MongoCollection<Document> collection = mongoClient.getDatabase(dbName).getCollection(collName);
         Document doc = new Document(BeanUtil.bean2DBObj(obj));
         collection.insertOne(doc);
+    }
+
+    public static void main(String[] args) {
+//        MongoCollection<Document> collection = MongodbUtil.getCollection(MONGODB_DB,"user");
+//        collection.find(and(eq("", 20))).projection(include("quantity"));
+//        String[] names = {"tom","jack","jetty","lucy"};
+//        String[] addrs = {"北京","天津","上海","河北","河南","山西","湖南","广东","香港"};
+//        MongoDatabase database = MongodbUtil.getDB("test");
+//        database.createCollection("user");
+//        MongoCollection<Document> collection = MongodbUtil.getCollection("test","user");
+//        List<Document> list = null;
+//        for(long i = 0;i<100000000;i++){
+//            if(i%10000 == 0){
+//                if(list!=null)
+//                    collection.insertMany(list);
+//                list = new ArrayList<>();
+//            }
+//            Document doc = new Document("name",names[(int) (i%4)]).append("age",i%80).append("address",addrs[(int) (i%9)]).append("time",System.currentTimeMillis());
+//            list.add(doc);
+//        }
+//        collection.insertMany(list);
+        GridFS fs = new GridFS(MongodbUtil.getOldDB("test"));
+        try {
+//            GridFSInputFile inputFile =  fs.createFile(new File("C:\\Users\\d\\Desktop\\百分点工时系统使用手册V1.0.pdf"));
+//            System.out.println(inputFile.getId());
+//            inputFile.save();
+            GridFSDBFile file =  fs.findOne(new ObjectId("57af3e7617251328e883d93d"));
+            file.writeTo(new File("C:\\\\Users\\\\d\\\\Desktop\\\\百分点工时系统使用手册V2.0.pdf"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        MongodbUtil.close();
     }
 }

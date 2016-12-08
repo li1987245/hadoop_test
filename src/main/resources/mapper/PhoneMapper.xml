@@ -3,8 +3,19 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="mybatis.PhoneMapper">
+    <resultMap id="phoneMap" type="Phone">
+        <result property="id" column="id"/>
+        <result property="num" column="num"/>
+        <association property="user" javaType="User">
+            <result property="name" column="name"/>
+        </association>
+    </resultMap>
+
     <select id="selectPhone" resultType="Phone">
         select * from t_phone where id = #{id}
+    </select>
+    <select id="_selectPhone" resultMap="phoneMap">
+        select t_phone.id,t_phone.num,t_user.user_name name from t_phone,t_user where t_phone.user_id=t_user.id and t_phone.id = #{id}
     </select>
     <insert id="bulkInsertPhone" useGeneratedKeys="true" parameterType="list">
         insert into t_phone (phone_name,password)

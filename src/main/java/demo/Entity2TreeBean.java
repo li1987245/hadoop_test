@@ -1,5 +1,5 @@
 package demo;
-public interface Entity2TreeInter {
+public interface Entity2TreeBean {
     public String getId();
     public String getFatherId();
     public String getText();

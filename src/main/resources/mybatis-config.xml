@@ -12,13 +12,14 @@
             <transactionManager type="JDBC"/>
             <dataSource type="POOLED">
                 <property name="driver" value="com.mysql.jdbc.Driver"/>
-                <property name="url" value="jdbc:mysql://172.19.1.166:3306/label_lifecycle_poc"/>
-                <property name="username" value="label_all"/>
-                <property name="password" value="label_all"/>
+                <property name="url" value="jdbc:mysql://localhost:3306/test"/>
+                <property name="username" value="root"/>
+                <property name="password" value="admin"/>
             </dataSource>
         </environment>
     </environments>
     <mappers>
         <mapper resource="mapper/UserMapper.xml"/>
+        <mapper resource="mapper/PhoneMapper.xml"/>
     </mappers>
 </configuration>

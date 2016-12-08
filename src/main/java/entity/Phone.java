@@ -7,6 +7,7 @@ public class Phone {
     private int id;
     private String num;
     private int userId;
+    private User user;
 
     public int getId() {
         return id;
@@ -30,5 +31,13 @@ public class Phone {
 
     public void setUserId(int userId) {
         this.userId = userId;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }

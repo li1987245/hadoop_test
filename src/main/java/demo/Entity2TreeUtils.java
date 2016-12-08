@@ -1,7 +1,6 @@
 package demo;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -87,7 +86,7 @@ public class Entity2TreeUtils {
 		this.children = children;
 	}
 
-	public static <T extends Entity2TreeInter> String getTreeJsonString(
+	public static <T extends Entity2TreeBean> String getTreeJsonString(
 			List<T> e2tList) {
 		/**
 		 * 定义“数组-链表”，该数组链表的每一项相当于一深度为2的小树
@@ -96,7 +95,7 @@ public class Entity2TreeUtils {
 		 */
 		Map<String, List<Entity2TreeUtils>> arrayListMap = new HashMap<String, List<Entity2TreeUtils>>();
 
-		for (Entity2TreeInter e : e2tList) {
+		for (Entity2TreeBean e : e2tList) {
 			// 变量定义务必在循环内，对象是引用，不能重复使用同一个对象变量
 			Entity2TreeUtils e2t = new Entity2TreeUtils();
 			e2t.setId(e.getId());

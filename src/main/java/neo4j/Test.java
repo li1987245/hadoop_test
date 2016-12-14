@@ -29,6 +29,7 @@ public class Test {
             node1.createRelationshipTo(node2, RelationshipTypes.PUBLISH);
             Node node3 = db.createNode();
             node3.setProperty("name", "歌曲 1");
+            node2.createRelationshipTo(node1, RelationshipTypes.PUBLISH);
             node2.createRelationshipTo(node3, RelationshipTypes.CONTAIN);
             tx.success();
         } finally {
@@ -38,13 +39,14 @@ public class Test {
 
     public static void getNodeAndRelationship() {
         String query = "MATCH (n) RETURN n.name";
-        Result result = db.execute( query);
-        while(result.hasNext()){
+        Result result = db.execute(query);
+        while (result.hasNext()) {
             System.out.println(JSON.toJSONString(result.next()));
         }
     }
+
     public static void main(String[] args) {
-        db = new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
+        db = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(DB_PATH).newGraphDatabase();
         Test.useNodeAndRelationship();
         Test.getNodeAndRelationship();
         db.shutdown();
